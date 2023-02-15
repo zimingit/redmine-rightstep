@@ -1,2 +1,2 @@
 
-Copyright (C) 2023 
+Copyright (C) Rightstep 2023 
