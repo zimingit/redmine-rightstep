@@ -80,7 +80,7 @@ async def sendMyTasks(message):
 async def sendTasks(message):
     project = getProject(message.chat.id)
     versions = list(filter(lambda version: version.status == 'open', list(project.versions)))
-    text = "Задачи какой из версий ты хочешь посмотреть?🧐"
+    text = "Задачи какой из версий ты хочешь посмотреть? 🧐"
     buttons = [types.InlineKeyboardButton('Без версии', None, callback_data=f'showTasksByVersion:null')]
 
     for version in versions:
