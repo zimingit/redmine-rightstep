@@ -1,0 +1,14 @@
+[Unit]
+Description=Ramziv - Telegram Bot
+After=syslog.target
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/redmine-rightstep
+ExecStart=/usr/bin/python3 /root/redmine-rightstep/main.py
+RestartSec=60
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

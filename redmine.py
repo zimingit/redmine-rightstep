@@ -4,7 +4,15 @@ sessionUsersStorage = {}
 redmineUrl = 'https://redmine.tech.rightstep.ru/'
 
 def getStorage(chatID):
-    return sessionUsersStorage[chatID]
+    isLoggedIn = sessionUsersStorage[chatID]["redmine"]
+    try:
+        isLoggedIn.auth()
+        return sessionUsersStorage[chatID]
+    except:
+        username = sessionUsersStorage[chatID]["username"]
+        password = sessionUsersStorage[chatID]["password"]
+        setRedmine(chatID, username, password)
+        return sessionUsersStorage[chatID]
 
 def getRedmine(chatID):
     return getStorage(chatID)["redmine"]
