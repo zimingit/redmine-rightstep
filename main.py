@@ -1,8 +1,8 @@
 import asyncio
-import telegram
 import sotrings
+import telegram
 import taskActions
-from redmine import getRedmine, getUser, setRedmine, getProject
+from redmine import setRedmine, getProject, getIssues, useNotificator 
 from telebot.async_telebot import AsyncTeleBot
 from telebot import types, asyncio_filters
 from telebot.asyncio_handler_backends import State, StatesGroup
@@ -43,37 +43,38 @@ async def password_set(message):
     """
     Сработает, когда состояние будет установлено в password
     """
-    async with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+    chatID = message.chat.id
+    async with bot.retrieve_data(message.from_user.id, chatID) as data:
         try:
-            setRedmine(message.chat.id, data['username'], message.text)
+            setRedmine(chatID, data['username'], message.text)
             text = (f"Блестяще, теперь ты <b>авторизован</b>! 😍\n"
                     f"Посмотрим твои задачи?")
             markup = types.InlineKeyboardMarkup([[
                 types.InlineKeyboardButton('Задачи на мне', None, callback_data='/mytasks'),
                 types.InlineKeyboardButton('По версии', None, callback_data='/tasks')
             ]])
-            await bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="html")
-            await bot.delete_state(message.from_user.id, message.chat.id)
+            await bot.send_message(chatID, text, reply_markup=markup, parse_mode="html")
+            await bot.delete_state(message.from_user.id, chatID)
+            await useNotificator(chatID, bot)
         except:
             text = (f"Упс, кажется введенные <b>данные не подошли</b>...🥲\n"
                     f"Давай попробуем еще раз. <b>Вводи логин</b> 🤞")
-            await bot.set_state(message.from_user.id, MyStates.username, message.chat.id)
-            await bot.send_message(message.chat.id, text, parse_mode="html")
+            await bot.set_state(message.from_user.id, MyStates.username, chatID)
+            await bot.send_message(chatID, text, parse_mode="html")
+
 
 # Список всех задач
 @bot.message_handler(commands=['mytasks'])
 async def sendMyTasks(message):
     chatID = message.chat.id
-    redmine = getRedmine(message.chat.id)
-    user = getUser(message.chat.id)
-    issues = redmine.issue.filter(assigned_to_id=user.id)
+    issues = getIssues(chatID)
     issuesByVersion = sorted(issues, key=sotrings.sortByVersion)
     if len(issuesByVersion) == 0:
         return await taskActions.sendHasNoIssues(chatID, bot)
     
-    await bot.send_message(message.chat.id, "Список твоих задач:")
+    await bot.send_message(chatID, "Список твоих задач:")
     for issue in issuesByVersion:
-        await taskActions.sendIssue(issue, message, bot) 
+        await taskActions.sendIssue(issue, message.chat.id, bot) 
 
 # Список задач по версии
 @bot.message_handler(commands=['tasks'])
@@ -108,7 +109,8 @@ async def back_callback(call: types.CallbackQuery):
         return await taskActions.toAssembly(call, bot)
     if call.data.startswith('toTest'):
         return await taskActions.toTest(call, bot)
-        
+
 
 bot.add_custom_filter(asyncio_filters.StateFilter(bot))
+    
 asyncio.run(bot.polling())

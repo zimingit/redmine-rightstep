@@ -1,5 +1,5 @@
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-from redmine import getRedmine, getUser
+from redmine import getRedmine, getIssues
 
 # Возвращает текст с описанием задачи
 def getIssueText(issue):
@@ -17,13 +17,15 @@ def getIssueText(issue):
             f"{issue.subject}\n")
 
 # Отправка информации о задачи
-async def sendIssue(issue, message, bot):
+async def sendIssue(issue, chatID, bot):
     status = issue.status.name
+    hasDescription = issue.description
     text = getIssueText(issue)
-    common = [
-        InlineKeyboardButton('Подробнее', None, callback_data=f'details:{issue.id}'),
-        InlineKeyboardButton('К задаче', url=f'https://redmine.tech.rightstep.ru/issues/{issue.id}')
-    ]
+    
+    common = [InlineKeyboardButton('К задаче', url=f'https://redmine.tech.rightstep.ru/issues/{issue.id}')]
+    if hasDescription:
+        common.append(InlineKeyboardButton('Подробнее', None, callback_data=f'details:{issue.id}'))
+
     actions = []
     if status in ["К разработке", "Новый", "Отложенный"]:
         actions.append(InlineKeyboardButton('В работу', None, callback_data=f'toWork:{issue.id}'))
@@ -33,7 +35,7 @@ async def sendIssue(issue, message, bot):
         
     markup = InlineKeyboardMarkup([common, actions])
 
-    await bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="html")
+    await bot.send_message(chatID, text, reply_markup=markup, parse_mode="html")
 
 # Нет задач по фильтру
 async def sendHasNoIssues(chatID, bot):
@@ -61,23 +63,21 @@ async def showDetails(call, bot):
 # Просмотр моих задач в версии
 async def showTasksByVersion(call, bot):
     chatID = call.message.chat.id
-    redmine = getRedmine(chatID)
-    user = getUser(chatID)
 
     versionID = call.data.split(':')[1]
-    issues = redmine.issue.filter(assigned_to_id=user.id)
+    issues = getIssues(chatID)
     issuesInVersion = []
     
     if versionID == 'null':
-        issuesInVersion = list(filter(lambda issue: not hasattr(issue, 'fixed_version'), list(issues)))
+        issuesInVersion = list(filter(lambda issue: not hasattr(issue, 'fixed_version'), issues))
     else:
-        issuesInVersion = list(filter(lambda issue: issue.fixed_version.id == int(versionID) if hasattr(issue, 'fixed_version') else False, list(issues)))
+        issuesInVersion = list(filter(lambda issue: issue.fixed_version.id == int(versionID) if hasattr(issue, 'fixed_version') else False, issues))
     
     if len(issuesInVersion) == 0:
         return await sendHasNoIssues(chatID, bot)
 
     for issue in issuesInVersion:
-        await sendIssue(issue, call.message, bot)
+        await sendIssue(issue, call.message.chat.id, bot)
 
 # Перевод задачи в работу
 async def toWork(call, bot):
@@ -88,7 +88,7 @@ async def toWork(call, bot):
     issue = redmine.issue.get(issueId)
     text = f'Готово! Задача в работе, скорее за дело! 🐱'
     await bot.reply_to(call.message, text)
-    await sendIssue(issue, call.message, bot)
+    await sendIssue(issue, call.message.chat.id, bot)
 
 # Перевод задачи в тестирование
 async def toTest(call, bot):
