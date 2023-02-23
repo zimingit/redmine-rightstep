@@ -1,4 +1,4 @@
-import sys
+import os
 import asyncio
 import sotrings
 # import telegram
@@ -9,8 +9,7 @@ from telebot import types, asyncio_filters
 from telebot.asyncio_handler_backends import State, StatesGroup
 from telebot.asyncio_storage import StateMemoryStorage
 
-token = sys.argv[1]
-bot = AsyncTeleBot(token, state_storage=StateMemoryStorage())
+bot = AsyncTeleBot(os.environ.get('API_KEY'), state_storage=StateMemoryStorage())
 class MyStates(StatesGroup):
     username = State()
     password = State()
