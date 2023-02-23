@@ -9,7 +9,7 @@ from telebot import types, asyncio_filters
 from telebot.asyncio_handler_backends import State, StatesGroup
 from telebot.asyncio_storage import StateMemoryStorage
 
-bot = AsyncTeleBot(os.environ.get('API_KEY'), state_storage=StateMemoryStorage())
+bot = AsyncTeleBot(os.environ.get('TELEGRAM'), state_storage=StateMemoryStorage())
 class MyStates(StatesGroup):
     username = State()
     password = State()
